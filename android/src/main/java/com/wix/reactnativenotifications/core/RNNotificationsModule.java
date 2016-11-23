@@ -12,6 +12,9 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
+import com.wix.reactnativenotifications.core.notification.IPushNotification;
+import com.wix.reactnativenotifications.core.notification.PushNotification;
 import com.wix.reactnativenotifications.core.notification.PushNotificationProps;
 import com.wix.reactnativenotifications.core.notificationdrawer.IPushNotificationsDrawer;
 import com.wix.reactnativenotifications.core.notificationdrawer.PushNotificationsDrawer;
@@ -64,6 +67,27 @@ public class RNNotificationsModule extends ReactContextBaseJavaModule implements
         } finally {
             promise.resolve(result);
         }
+    }
+
+    @ReactMethod
+    public void postLocalNotification(ReadableMap notificationPropsMap, final Promise promise) {
+        Log.d(LOGTAG, "Native method invocation: postLocalNotification");
+        Object result = null;
+
+        try {
+            final Bundle notificationProps = Arguments.toBundle(notificationPropsMap);
+            final IPushNotification pushNotification = PushNotification.get(getReactApplicationContext().getApplicationContext(), notificationProps, ReactAppLifecycleFacade.get());
+            int id = pushNotification.onPostRequest();
+            result = id;
+        } finally {
+            promise.resolve(result);
+        }
+    }
+
+    @ReactMethod
+    public void removeLocalNotification(int notificationId) {
+        IPushNotificationsDrawer notificationsDrawer = PushNotificationsDrawer.get(getReactApplicationContext().getApplicationContext());
+        notificationsDrawer.onNotificationClear(notificationId);
     }
 
     @Override
