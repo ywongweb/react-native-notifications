@@ -18,5 +18,11 @@ public interface IPushNotification {
      */
     void onOpened();
 
+    /**
+     * Handle a request to post this notification.
+     * @return ID to optionally use for notification deletion.
+     */
+    int onPostRequest();
+
     PushNotificationProps asProps();
 }

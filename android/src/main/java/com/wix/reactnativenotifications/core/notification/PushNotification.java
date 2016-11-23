@@ -69,14 +69,19 @@ public class PushNotification implements IPushNotification {
     }
 
     @Override
+    public int onPostRequest() {
+        return postNotification();
+    }
+
+    @Override
     public PushNotificationProps asProps() {
         return mNotificationProps.copy();
     }
 
-    protected void postNotification() {
+    protected int postNotification() {
         final PendingIntent pendingIntent = getCTAPendingIntent();
         final Notification notification = buildNotification(pendingIntent);
-        postNotification((int) System.currentTimeMillis(), notification);
+        return postNotification(notification);
     }
 
     protected void digestNotification() {
@@ -141,9 +146,19 @@ public class PushNotification implements IPushNotification {
                 .setAutoCancel(true);
     }
 
+    protected int postNotification(Notification notification) {
+        int id = createNotificationId(notification);
+        postNotification(id, notification);
+        return id;
+    }
+
     protected void postNotification(int id, Notification notification) {
         final NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(id, notification);
+    }
+
+    protected int createNotificationId(Notification notification) {
+        return (int) System.currentTimeMillis();
     }
 
     protected ReactContext getRunningReactContext() {
