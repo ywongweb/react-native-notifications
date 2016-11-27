@@ -70,22 +70,15 @@ public class RNNotificationsModule extends ReactContextBaseJavaModule implements
     }
 
     @ReactMethod
-    public void postLocalNotification(ReadableMap notificationPropsMap, final Promise promise) {
+    public void postLocalNotification(ReadableMap notificationPropsMap, int notificationId) {
         Log.d(LOGTAG, "Native method invocation: postLocalNotification");
-        Object result = null;
-
-        try {
-            final Bundle notificationProps = Arguments.toBundle(notificationPropsMap);
-            final IPushNotification pushNotification = PushNotification.get(getReactApplicationContext().getApplicationContext(), notificationProps, ReactAppLifecycleFacade.get());
-            int id = pushNotification.onPostRequest();
-            result = id;
-        } finally {
-            promise.resolve(result);
-        }
+        final Bundle notificationProps = Arguments.toBundle(notificationPropsMap);
+        final IPushNotification pushNotification = PushNotification.get(getReactApplicationContext().getApplicationContext(), notificationProps, ReactAppLifecycleFacade.get());
+        pushNotification.onPostRequest(notificationId);
     }
 
     @ReactMethod
-    public void removeLocalNotification(int notificationId) {
+    public void cancelLocalNotification(int notificationId) {
         IPushNotificationsDrawer notificationsDrawer = PushNotificationsDrawer.get(getReactApplicationContext().getApplicationContext());
         notificationsDrawer.onNotificationClear(notificationId);
     }

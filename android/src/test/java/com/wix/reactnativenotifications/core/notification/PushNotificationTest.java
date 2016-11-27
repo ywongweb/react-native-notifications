@@ -15,7 +15,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.robolectric.RobolectricTestRunner;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,8 +25,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.Silent.class)
+@RunWith(RobolectricTestRunner.class)
 public class PushNotificationTest {
+
+    private static final String NOTIFICATION_OPENED_EVENT_NAME = "notificationOpened";
+    private static final String NOTIFICATION_RECEIVED_EVENT_NAME = "notificationReceived";
 
     @Mock private ReactContext mReactContext;
     @Mock private Context mContext;
@@ -37,6 +42,8 @@ public class PushNotificationTest {
 
     @Before
     public void setup() throws Exception {
+        MockitoAnnotations.initMocks(this);
+
         when(mDefaultBundle.getString(eq("title"))).thenReturn("Notification-title");
         when(mDefaultBundle.getString(eq("body"))).thenReturn("Notification-body");
         when(mDefaultBundle.clone()).thenReturn(mDefaultBundle);
@@ -88,7 +95,7 @@ public class PushNotificationTest {
 
         // Assert
 
-        verify(mReactContextAdapter).sendEventToJS(eq("notificationOpened"), eq(mDefaultBundle), eq(mContext));
+        verify(mReactContextAdapter).sendEventToJS(eq(NOTIFICATION_OPENED_EVENT_NAME), eq(mDefaultBundle), eq(mContext));
     }
 
     @Test
@@ -100,7 +107,15 @@ public class PushNotificationTest {
         uut.onOpened();
 
         verify(mContext, never()).startActivity(any(Intent.class));
-        verify(mReactContextAdapter).sendEventToJS(eq("notificationOpened"), eq(mDefaultBundle), eq(mContext));
+        verify(mReactContextAdapter).sendEventToJS(eq(NOTIFICATION_OPENED_EVENT_NAME), eq(mDefaultBundle), eq(mContext));
+    }
+
+    @Test
+    public void onPostRequest_withValidDataButNoId_postNotifAndNotifyJS() throws Exception {
+        final PushNotification uut = createUUT();
+        uut.onPostRequest(null);
+
+        verify(mReactContextAdapter).sendEventToJS(eq(NOTIFICATION_RECEIVED_EVENT_NAME), eq(mDefaultBundle), eq(mContext));
     }
 
     protected PushNotification createUUT() {

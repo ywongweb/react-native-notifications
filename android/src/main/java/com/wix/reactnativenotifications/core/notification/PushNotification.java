@@ -7,13 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 
-import com.facebook.react.ReactApplication;
-import com.facebook.react.ReactInstanceManager;
-import com.facebook.react.ReactNativeHost;
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.wix.reactnativenotifications.core.AppLaunchHelper;
 import com.wix.reactnativenotifications.core.AppLifecycleFacade;
 import com.wix.reactnativenotifications.core.AppLifecycleFacade.AppVisibilityListener;
@@ -66,7 +60,7 @@ public class PushNotification implements IPushNotification {
 
     @Override
     public void onReceived() throws InvalidNotificationException {
-        postNotification();
+        postNotification(null);
         notifyReceivedToJS();
     }
 
@@ -76,8 +70,8 @@ public class PushNotification implements IPushNotification {
     }
 
     @Override
-    public int onPostRequest() {
-        return postNotification();
+    public int onPostRequest(Integer notificationId) {
+        return postNotification(notificationId);
     }
 
     @Override
@@ -85,10 +79,10 @@ public class PushNotification implements IPushNotification {
         return mNotificationProps.copy();
     }
 
-    protected int postNotification() {
+    protected int postNotification(Integer notificationId) {
         final PendingIntent pendingIntent = getCTAPendingIntent();
         final Notification notification = buildNotification(pendingIntent);
-        return postNotification(notification);
+        return postNotification(notification, notificationId);
     }
 
     protected void digestNotification() {
@@ -153,8 +147,8 @@ public class PushNotification implements IPushNotification {
                 .setAutoCancel(true);
     }
 
-    protected int postNotification(Notification notification) {
-        int id = createNotificationId(notification);
+    protected int postNotification(Notification notification, Integer notificationId) {
+        int id = notificationId != null ? notificationId : createNotificationId(notification);
         postNotification(id, notification);
         return id;
     }

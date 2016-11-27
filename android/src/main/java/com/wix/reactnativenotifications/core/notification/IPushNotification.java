@@ -20,9 +20,11 @@ public interface IPushNotification {
 
     /**
      * Handle a request to post this notification.
-     * @return ID to optionally use for notification deletion.
+     *
+     * @param notificationId (optional) The specific ID to associated with the notification.
+     * @return The ID effectively assigned to the notification (Auto-assigned if not specified as a parameter).
      */
-    int onPostRequest();
+    int onPostRequest(Integer notificationId);
 
     PushNotificationProps asProps();
 }
