@@ -20,7 +20,7 @@ import com.wix.reactnativenotifications.core.AppLifecycleFacade.AppVisibilityLis
 import com.wix.reactnativenotifications.core.InitialNotification;
 import com.wix.reactnativenotifications.core.NotificationIntentAdapter;
 import com.wix.reactnativenotifications.core.ProxyService;
-import com.wix.reactnativenotifications.core.notificationdrawer.PushNotificationsDrawer;
+import com.wix.reactnativenotifications.core.ReactContextAdapter;
 
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_OPENED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_EVENT_NAME;
@@ -29,6 +29,8 @@ public class PushNotification implements IPushNotification {
 
     final protected Context mContext;
     final protected AppLifecycleFacade mAppLifecycleFacade;
+    final protected AppLaunchHelper mAppLaunchHelper;
+    final protected ReactContextAdapter mReactContextAdapter;
     final protected PushNotificationProps mNotificationProps;
     final protected AppVisibilityListener mAppVisibilityListener = new AppVisibilityListener() {
         @Override
@@ -42,18 +44,24 @@ public class PushNotification implements IPushNotification {
         }
     };
 
-    protected PushNotification(Context context, Bundle bundle, AppLifecycleFacade appLifecycleFacade) {
-        mContext = context;
-        mAppLifecycleFacade = appLifecycleFacade;
-        mNotificationProps = createProps(bundle);
+    public static IPushNotification get(Context context, Bundle bundle, AppLifecycleFacade facade) {
+        return PushNotification.get(context, bundle, facade, new AppLaunchHelper());
     }
 
-    public static IPushNotification get(Context context, Bundle bundle, AppLifecycleFacade facade) {
+    public static IPushNotification get(Context context, Bundle bundle, AppLifecycleFacade facade, AppLaunchHelper appLaunchHelper) {
         Context appContext = context.getApplicationContext();
         if (appContext instanceof INotificationsApplication) {
-            return ((INotificationsApplication) appContext).getPushNotification(context, bundle, facade);
+            return ((INotificationsApplication) appContext).getPushNotification(context, bundle, facade, appLaunchHelper);
         }
-        return new PushNotification(context, bundle, facade);
+        return new PushNotification(context, bundle, facade, appLaunchHelper, new ReactContextAdapter());
+    }
+
+    protected PushNotification(Context context, Bundle bundle, AppLifecycleFacade appLifecycleFacade, AppLaunchHelper appLaunchHelper, ReactContextAdapter reactContextAdapter) {
+        mContext = context;
+        mAppLifecycleFacade = appLifecycleFacade;
+        mAppLaunchHelper = appLaunchHelper;
+        mReactContextAdapter = reactContextAdapter;
+        mNotificationProps = createProps(bundle);
     }
 
     @Override
@@ -65,7 +73,6 @@ public class PushNotification implements IPushNotification {
     @Override
     public void onOpened() {
         digestNotification();
-        PushNotificationsDrawer.get(mContext).onNotificationOpened();
     }
 
     @Override
@@ -91,7 +98,7 @@ public class PushNotification implements IPushNotification {
             return;
         }
 
-        final ReactContext reactContext = getRunningReactContext();
+        final ReactContext reactContext = mReactContextAdapter.getRunningReactContext(mContext);
         if (reactContext.getCurrentActivity() == null) {
             setAsInitialNotification();
         }
@@ -161,46 +168,16 @@ public class PushNotification implements IPushNotification {
         return (int) System.currentTimeMillis();
     }
 
-    protected ReactContext getRunningReactContext() {
-        final ReactNativeHost rnHost = ((ReactApplication) mContext.getApplicationContext()).getReactNativeHost();
-        if (!rnHost.hasInstance()) {
-            return null;
-        }
-
-        final ReactInstanceManager instanceManager = rnHost.getReactInstanceManager();
-        final ReactContext reactContext = instanceManager.getCurrentReactContext();
-        if (reactContext == null || !reactContext.hasActiveCatalystInstance()) {
-            return null;
-        }
-
-        return reactContext;
-    }
-
     private void notifyReceivedToJS() {
-        notifyJS(NOTIFICATION_RECEIVED_EVENT_NAME, null);
+        mReactContextAdapter.sendEventToJS(NOTIFICATION_RECEIVED_EVENT_NAME, mNotificationProps.asBundle(), mContext);
     }
 
     private void notifyOpenedToJS() {
-        notifyOpenedToJS(null);
-    }
-
-    private void notifyOpenedToJS(ReactContext reactContext) {
-        notifyJS(NOTIFICATION_OPENED_EVENT_NAME, reactContext);
-    }
-
-    private void notifyJS(String eventName, ReactContext reactContext) {
-        if (reactContext == null) {
-            reactContext = getRunningReactContext();
-        }
-
-        if (reactContext != null) {
-            final WritableMap notificationAsMap = Arguments.fromBundle(mNotificationProps.asBundle());
-            reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(eventName, notificationAsMap);
-        }
+        mReactContextAdapter.sendEventToJS(NOTIFICATION_OPENED_EVENT_NAME, mNotificationProps.asBundle(), mContext);
     }
 
     protected void launchOrResumeApp() {
-        final Intent intent = AppLaunchHelper.getLaunchIntent(mContext);
+        final Intent intent = mAppLaunchHelper.getLaunchIntent(mContext);
         mContext.startActivity(intent);
     }
 }
