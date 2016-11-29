@@ -14,7 +14,7 @@ import com.wix.reactnativenotifications.core.AppLifecycleFacade.AppVisibilityLis
 import com.wix.reactnativenotifications.core.InitialNotification;
 import com.wix.reactnativenotifications.core.NotificationIntentAdapter;
 import com.wix.reactnativenotifications.core.ProxyService;
-import com.wix.reactnativenotifications.core.ReactContextAdapter;
+import com.wix.reactnativenotifications.core.JsIOHelper;
 
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_OPENED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_EVENT_NAME;
@@ -24,7 +24,7 @@ public class PushNotification implements IPushNotification {
     final protected Context mContext;
     final protected AppLifecycleFacade mAppLifecycleFacade;
     final protected AppLaunchHelper mAppLaunchHelper;
-    final protected ReactContextAdapter mReactContextAdapter;
+    final protected JsIOHelper mJsIOHelper;
     final protected PushNotificationProps mNotificationProps;
     final protected AppVisibilityListener mAppVisibilityListener = new AppVisibilityListener() {
         @Override
@@ -47,14 +47,14 @@ public class PushNotification implements IPushNotification {
         if (appContext instanceof INotificationsApplication) {
             return ((INotificationsApplication) appContext).getPushNotification(context, bundle, facade, appLaunchHelper);
         }
-        return new PushNotification(context, bundle, facade, appLaunchHelper, new ReactContextAdapter());
+        return new PushNotification(context, bundle, facade, appLaunchHelper, new JsIOHelper());
     }
 
-    protected PushNotification(Context context, Bundle bundle, AppLifecycleFacade appLifecycleFacade, AppLaunchHelper appLaunchHelper, ReactContextAdapter reactContextAdapter) {
+    protected PushNotification(Context context, Bundle bundle, AppLifecycleFacade appLifecycleFacade, AppLaunchHelper appLaunchHelper, JsIOHelper JsIOHelper) {
         mContext = context;
         mAppLifecycleFacade = appLifecycleFacade;
         mAppLaunchHelper = appLaunchHelper;
-        mReactContextAdapter = reactContextAdapter;
+        mJsIOHelper = JsIOHelper;
         mNotificationProps = createProps(bundle);
     }
 
@@ -92,7 +92,7 @@ public class PushNotification implements IPushNotification {
             return;
         }
 
-        final ReactContext reactContext = mReactContextAdapter.getRunningReactContext(mContext);
+        final ReactContext reactContext = mAppLifecycleFacade.getRunningReactContext();
         if (reactContext.getCurrentActivity() == null) {
             setAsInitialNotification();
         }
@@ -159,15 +159,15 @@ public class PushNotification implements IPushNotification {
     }
 
     protected int createNotificationId(Notification notification) {
-        return (int) System.currentTimeMillis();
+        return (int) System.nanoTime();
     }
 
     private void notifyReceivedToJS() {
-        mReactContextAdapter.sendEventToJS(NOTIFICATION_RECEIVED_EVENT_NAME, mNotificationProps.asBundle(), mContext);
+        mJsIOHelper.sendEventToJS(NOTIFICATION_RECEIVED_EVENT_NAME, mNotificationProps.asBundle(), mAppLifecycleFacade.getRunningReactContext());
     }
 
     private void notifyOpenedToJS() {
-        mReactContextAdapter.sendEventToJS(NOTIFICATION_OPENED_EVENT_NAME, mNotificationProps.asBundle(), mContext);
+        mJsIOHelper.sendEventToJS(NOTIFICATION_OPENED_EVENT_NAME, mNotificationProps.asBundle(), mAppLifecycleFacade.getRunningReactContext());
     }
 
     protected void launchOrResumeApp() {
