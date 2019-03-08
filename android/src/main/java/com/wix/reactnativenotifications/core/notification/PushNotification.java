@@ -63,11 +63,12 @@ public class PushNotification implements IPushNotification {
     }
 
     private static boolean verifyNotificationBundle(Bundle bundle) {
-        if (bundle.getString("google.message_id") != null) {
-            return true;
-        }
-
-        return false;
+//        if (bundle.getString("google.message_id") != null) {
+//            return true;
+//        }
+//
+//        return false;
+        return true // hack until we know why there is no message_id on local notification bundle
     }
 
     @Override
